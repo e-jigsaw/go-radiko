@@ -11,6 +11,8 @@ import (
 	"path"
 	"runtime"
 	"time"
+
+	"github.com/yyoshiki41/go-radiko/internal/m3u8"
 )
 
 const (
@@ -179,4 +181,23 @@ func SetUserAgent(ua string) {
 
 func apiPath(apiVersion, pathStr string) string {
 	return path.Join(apiVersion, "api", pathStr)
+}
+
+// GetChunklistFromURI returns a slice of url with authentication.
+func (c *Client) GetChunklistFromURI(ctx context.Context, uri string) ([]string, error) {
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set(radikoAuthTokenHeader, c.AuthToken())
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return m3u8.GetChunklist(resp.Body)
 }
